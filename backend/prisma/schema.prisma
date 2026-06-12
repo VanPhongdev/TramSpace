@@ -8,88 +8,163 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  name      String
-  bio       String?
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String          @id @default(uuid()) @db.Uuid
+  email            String          @unique @db.VarChar(255)
+  password         String
+  displayName      String?         @map("display_name") @db.VarChar(100)
+  avatarUrl        String?         @map("avatar_url")
+  coverUrl         String?         @map("cover_url")
+  bio              String?
+  gender           Int?            @db.SmallInt
+  dateOfBirth      DateTime?       @map("date_of_birth") @db.Date
+  isEmailVerified  Boolean?        @default(false) @map("is_email_verified")
+  status           String?         @default("ACTIVE") @db.VarChar(20)
+  followersCount   Int?            @default(0) @map("followers_count")
+  followingCount   Int?            @default(0) @map("following_count")
+  friendsCount     Int?            @default(0) @map("friends_count")
+  postsCount       Int?            @default(0) @map("posts_count")
+  createdAt        DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  commentLikes     CommentLike[]
+  comments         Comment[]
+  following        Follow[]        @relation("follower")
+  followers        Follow[]        @relation("following")
+  receivedRequests FriendRequest[] @relation("friend_request_receiver")
+  sentRequests     FriendRequest[] @relation("friend_request_sender")
+  otpCodes         OtpCode[]
+  postLikes        PostLike[]
+  posts            Post[]
+  refreshTokens    RefreshToken[]
 
-  posts         Post[]
-  comments      Comment[]
-  likes         Like[]
-  followers     Follow[]      @relation("following")
-  following     Follow[]      @relation("follower")
-  notifications Notification[]
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String
+  expiresAt DateTime  @map("expires_at") @db.Timestamp(6)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("refresh_tokens")
+}
+
+model OtpCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  email     String    @db.VarChar(255)
+  otpHash   String    @map("otp_hash")
+  type      String    @db.VarChar(30)
+  attempts  Int?      @default(0) @db.SmallInt
+  expiresAt DateTime  @map("expires_at") @db.Timestamp(6)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("otp_codes")
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  content   String
-  images    String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String     @id @default(uuid()) @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  content      String?
+  visibility   String?    @default("PUBLIC") @db.VarChar(20)
+  likeCount    Int?       @default(0) @map("like_count")
+  commentCount Int?       @default(0) @map("comment_count")
+  isDeleted    Boolean?   @default(false) @map("is_deleted")
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamp(6)
+  createdAt    DateTime?  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  comments     Comment[]
+  media        Media[]
+  likes        PostLike[]
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments  Comment[]
-  likes     Like[]
+  @@index([userId], map: "idx_posts_user")
+  @@index([createdAt(sort: Desc)], map: "idx_posts_created_at")
+  @@map("posts")
+}
+
+model Media {
+  id                 String    @id @default(uuid()) @db.Uuid
+  postId             String    @map("post_id") @db.Uuid
+  imageUrl           String    @map("image_url")
+  cloudinaryPublicId String    @map("cloudinary_public_id")
+  displayOrder       Int?      @default(0) @map("display_order")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  post               Post      @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("media")
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
+  id              String        @id @default(uuid()) @db.Uuid
+  postId          String        @map("post_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  parentCommentId String?       @map("parent_comment_id") @db.Uuid
+  content         String
+  likeCount       Int?          @default(0) @map("like_count")
+  replyCount      Int?          @default(0) @map("reply_count")
+  isDeleted       Boolean?      @default(false) @map("is_deleted")
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamp(6)
+  createdAt       DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  likes           CommentLike[]
+  parentComment   Comment?      @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies         Comment[]     @relation("CommentReplies")
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Comment? @relation("replies", fields: [parentId], references: [id])
-  replies   Comment[] @relation("replies")
-  likes     Like[]
+  @@index([postId], map: "idx_comments_post")
+  @@index([parentCommentId], map: "idx_comments_parent")
+  @@map("comments")
 }
 
-model Like {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+model PostLike {
+  userId    String    @map("user_id") @db.Uuid
+  postId    String    @map("post_id") @db.Uuid
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId    String?
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  commentId String?
-  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  @@id([userId, postId])
+  @@map("post_likes")
+}
 
-  @@unique([userId, postId])
-  @@unique([userId, commentId])
+model CommentLike {
+  userId    String    @map("user_id") @db.Uuid
+  commentId String    @map("comment_id") @db.Uuid
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  comment   Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userId, commentId])
+  @@map("comment_likes")
 }
 
 model Follow {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
+  followerId  String    @map("follower_id") @db.Uuid
+  followingId String    @map("following_id") @db.Uuid
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  follower    User      @relation("follower", fields: [followerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  following   User      @relation("following", fields: [followingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  followerId  String
-  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  followingId String
-  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@unique([followerId, followingId])
+  @@id([followerId, followingId])
+  @@index([followerId], map: "idx_follows_follower")
+  @@index([followingId], map: "idx_follows_following")
+  @@map("follows")
 }
 
-model Notification {
-  id         String   @id @default(cuid())
-  type       String   // "like" | "comment" | "follow"
-  entityId   String?
-  entityType String?  // "post" | "comment"
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
+model FriendRequest {
+  id         String    @id @default(uuid()) @db.Uuid
+  senderId   String    @map("sender_id") @db.Uuid
+  receiverId String    @map("receiver_id") @db.Uuid
+  status     String    @db.VarChar(20)
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  receiver   User      @relation("friend_request_receiver", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sender     User      @relation("friend_request_sender", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  receiverId String
-  receiver   User     @relation(fields: [receiverId], references: [id], onDelete: Cascade)
-  actorId    String
+  @@index([senderId], map: "idx_friend_requests_sender")
+  @@index([receiverId], map: "idx_friend_requests_receiver")
+  @@map("friend_requests")
 }

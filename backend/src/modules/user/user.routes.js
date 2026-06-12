@@ -13,12 +13,11 @@ import {
 const router = Router()
 
 // GET /api/users/me — lấy thông tin chính mình (cần auth)
-// Phải đặt TRƯỚC /:username vì Express match từ trên xuống
-// Nếu đặt sau, /me sẽ bị hiểu là username = "me"
+// Phải đặt TRƯỚC /:id vì Express match từ trên xuống
 router.get('/me', authenticate, getMeHandler)
 
-// GET /api/users/:username — xem profile bất kỳ (không cần auth)
-router.get('/:username', getProfileHandler)
+// GET /api/users/:id — xem profile bất kỳ theo UUID (không cần auth)
+router.get('/:id', getProfileHandler)
 
 // PATCH /api/users/me — cập nhật profile (cần auth + validate)
 router.patch('/me', authenticate, validate(updateProfileSchema), updateProfileHandler)
@@ -27,4 +26,4 @@ router.patch('/me', authenticate, validate(updateProfileSchema), updateProfileHa
 // upload.single('avatar') là multer middleware — nhận file từ form-data field 'avatar'
 router.post('/me/avatar', authenticate, upload.single('avatar'), uploadAvatarHandler)
 
-export default router
+export default router

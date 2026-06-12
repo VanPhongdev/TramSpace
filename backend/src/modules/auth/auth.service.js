@@ -3,16 +3,16 @@ import prisma from '../../lib/prisma.js'
 import redis from '../../lib/redis.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt.js'
 
-export const register = async ({ email, username, password, name }) => {
+export const register = async ({ email, password, displayName }) => {
   const exists = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] }
+    where: { email }
   })
-  if (exists) throw { status: 409, message: 'Email hoặc username đã tồn tại' }
+  if (exists) throw { status: 409, message: 'Email này đã tồn tại' }
 
   const hashed = await bcrypt.hash(password, 12)
   const user = await prisma.user.create({
-    data: { email, username, password: hashed, name },
-    select: { id: true, email: true, username: true, name: true }
+    data: { email, displayName, password: hashed },
+    select: { id: true, email: true, displayName: true }
   })
   return user
 }
@@ -30,7 +30,7 @@ export const login = async ({ email, password }) => {
   // Lưu refresh token vào Redis, TTL 7 ngày
   await redis.setEx(`rt:${user.id}`, 60 * 60 * 24 * 7, refreshToken)
 
-  return { accessToken, refreshToken, user: { id: user.id, email: user.email, username: user.username, name: user.name } }
+  return { accessToken, refreshToken, user: { id: user.id, email: user.email, displayName: user.displayName } }
 }
 
 export const refresh = async (token) => {

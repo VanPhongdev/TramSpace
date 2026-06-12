@@ -9,10 +9,10 @@ export const getMeHandler = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-// GET /api/users/:username
+// GET /api/users/:id — xem profile bất kỳ theo UUID (không cần auth)
 export const getProfileHandler = async (req, res, next) => {
   try {
-    const user = await userService.getProfile(req.params.username)
+    const user = await userService.getProfile(req.params.id)
     res.json({ success: true, data: user })
   } catch (err) { next(err) }
 }
