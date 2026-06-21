@@ -9,6 +9,7 @@ import {
   uploadAvatarHandler,
   getMeHandler,
   updateUsernameHandler,
+  uploadCoverHandler,
 } from './user.controller.js'
 
 const router = Router()
@@ -29,5 +30,9 @@ router.patch('/me/username', authenticate, validate(updateUsernameSchema), updat
 // POST /api/users/me/avatar — upload ảnh đại diện
 // upload.single('avatar') là multer middleware — nhận file từ form-data field 'avatar'
 router.post('/me/avatar', authenticate, upload.single('avatar'), uploadAvatarHandler)
+
+// POST /api/users/me/cover — upload ảnh bìa
+// upload.single('cover') là multer middleware — nhận file từ form-data field 'cover'
+router.post('/me/cover', authenticate, upload.single('cover'), uploadCoverHandler)
 
 export default router

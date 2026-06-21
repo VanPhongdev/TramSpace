@@ -114,3 +114,16 @@ export const uploadAvatar = async (userId, fileBuffer) => {
     avatarUrl: result.secure_url,
   })
 }
+
+export const uploadCover = async (userId, fileBuffer) => {
+  const result = await new Promise((resolve, reject) => {
+    cloudinary.v2.uploader.upload_stream(
+      { folder: 'tramspace/covers', transformation: [{ width: 1920, height: 1080, crop: 'fill' }] },
+      (err, res) => err ? reject(err) : resolve(res)
+    ).end(fileBuffer)
+  })
+  // Lưu cloudinary_public_id để có thể xóa ảnh cũ sau này
+  return updateProfile(userId, {
+    coverUrl: result.secure_url,
+  })
+}

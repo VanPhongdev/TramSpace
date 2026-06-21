@@ -30,6 +30,7 @@ const buildInitialForm = (user) => ({
 export function useEditProfileForm(currentUser, isOpen, onUpdated, onClose) {
     const [form, setForm] = useState({});
     const [avatarFile, setAvatarFile] = useState(null);
+    const [coverFile, setCoverFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [usernameError, setUsernameError] = useState(null);
@@ -39,6 +40,7 @@ export function useEditProfileForm(currentUser, isOpen, onUpdated, onClose) {
         if (isOpen && currentUser) {
             setForm(buildInitialForm(currentUser));
             setAvatarFile(null);
+            setCoverFile(null);
             setError(null);
             setUsernameError(null);
         }
@@ -67,11 +69,11 @@ export function useEditProfileForm(currentUser, isOpen, onUpdated, onClose) {
 
     /* isDirty: so sánh form hiện tại với data gốc + có avatar mới không */
     const isDirty = useMemo(() => {
-        if (avatarFile) return true;
+        if (avatarFile || coverFile) return true;
         if (!currentUser) return false;
         const original = buildInitialForm(currentUser);
         return JSON.stringify(form) !== JSON.stringify(original);
-    }, [form, avatarFile, currentUser]);
+    }, [form, avatarFile, coverFile, currentUser]);
 
     const handleSave = async () => {
         if (saving) return;
@@ -108,6 +110,14 @@ export function useEditProfileForm(currentUser, isOpen, onUpdated, onClose) {
                 fd.append('avatar', avatarFile);
                 const avatarResult = await api._raw.post('/api/users/me/avatar', fd);
                 updatedUser = { ...updatedUser, ...(avatarResult.data?.data ?? {}) };
+            }
+
+            // 2b. Cover — upload riêng nếu có file mới
+            if (coverFile) {
+                const fd = new FormData();
+                fd.append('cover', coverFile);
+                const coverResult = await api._raw.post('/api/users/me/cover', fd);
+                updatedUser = { ...updatedUser, ...(coverResult.data?.data ?? {}) };
             }
 
             // 3. Profile — chỉ gửi fields đã thay đổi và có giá trị hợp lệ
@@ -159,6 +169,8 @@ export function useEditProfileForm(currentUser, isOpen, onUpdated, onClose) {
         updateField,
         avatarFile,
         setAvatarFile,
+        coverFile,
+        setCoverFile,
         saving,
         error,
         usernameError,

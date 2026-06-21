@@ -56,3 +56,14 @@ export const uploadAvatarHandler = async (req, res, next) => {
     res.json({ success: true, data: user })
   } catch (err) { next(err) }
 }
+
+// POST /api/users/me/cover
+export const uploadCoverHandler = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh' })
+    }
+    const user = await userService.uploadCover(req.user.userId, req.file.buffer)
+    res.json({ success: true, data: user })
+  } catch (err) { next(err) }
+}

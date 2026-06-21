@@ -24,6 +24,8 @@ export default function EditProfileModal({ currentUser, isOpen, onClose, onUpdat
     updateField,
     avatarFile,
     setAvatarFile,
+    coverFile,
+    setCoverFile,
     saving,
     error,
     usernameError,
@@ -86,6 +88,8 @@ export default function EditProfileModal({ currentUser, isOpen, onClose, onUpdat
                 currentUser={currentUser}
                 avatarFile={avatarFile}
                 setAvatarFile={setAvatarFile}
+                coverFile={coverFile}
+                setCoverFile={setCoverFile}
               />
             )}
             {activeTab === 'personal' && (
